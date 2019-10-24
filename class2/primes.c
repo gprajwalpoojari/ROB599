@@ -10,12 +10,13 @@ int main(void){
       if(n%i==0){
         while(n%i==0){
           n=n/i;
+          printf("%d\n",i);
         }
-      printf("%d\n",i);
+
       }
     }
     else{
     printf("%d\n",i);
     }
-  }  
+  }
 }
