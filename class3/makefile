@@ -6,3 +6,6 @@ upper: upper.c
 
 parity: parity.c
 			gcc -o $@ $^ -std=c11
+
+tricolor: tricolor.c
+			gcc -o $@ $^ -std=c11
