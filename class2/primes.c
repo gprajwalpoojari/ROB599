@@ -12,7 +12,6 @@ int main(void){
           n=n/i;
           printf("%d\n",i);
         }
-
       }
     }
     else{
