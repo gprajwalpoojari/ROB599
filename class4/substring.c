@@ -81,4 +81,5 @@ char *get_context(char *key, char **argv, char *file_buffer){
       }
   }
   return temp;
+  free(temp);
 }
