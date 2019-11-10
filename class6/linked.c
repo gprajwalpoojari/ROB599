@@ -55,7 +55,7 @@ void list_push_end(list_t *list, int value) {
     tmp->next = list->end;
     tmp->prev = list->end->prev;
     list->end->prev->next = tmp;
-    list->end = tmp;
+    list->end->prev = tmp;
   }
 }
 

@@ -1,6 +1,10 @@
-push_start 100
-push_start 200
-push_start 3
-pop_end
+push_start 1
+push_start 2
+push_end 3
+push_end 4
+push_end 5
+pop_start
+pop_start
+pop_start
 pop_end
 pop_end
