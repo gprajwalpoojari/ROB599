@@ -107,6 +107,7 @@ void respond(int connection_desc) {
     close(connection_desc);
 }
 
+
 void *image_server_run(void *user) {
     signal(SIGPIPE, SIG_IGN);
 
@@ -144,4 +145,33 @@ void image_server_set_data(size_t size, uint8_t *data) {
     memcpy(image_server_data, data, size);
 
     pthread_mutex_unlock(&image_server_mutex);
+}
+
+
+int main(void) {
+  bitmap_t bmp = { 0 }; // initialize to zeros
+  bmp.width = 640;
+  bmp.height = 480;
+  bmp.data = calloc(bmp.width * bmp.height, sizeof(color_bgr_t));
+
+  size_t bmp_size = bmp_calculate_size(&bmp);
+  uint8_t *serialized_bmp = malloc(bmp_size);
+  bmp_serialize(&bmp, serialized_bmp);
+
+  FILE *f = fopen("my_image.bmp", "wb");
+  fwrite(serialized_bmp, bmp_size, 1, f);
+  fclose(f);
+  // remember to later free the bmp.data when we are done using it
+  //size_t image_size =  bmp.width * bmp.height * sizeof(color_bgr_t);// calculate the size of the image
+  //uint8_t *image_data = malloc(image_size);
+  // make image_data a valid bmp image file
+
+  image_server_set_data(bmp_size, serialized_bmp);
+  image_server_start("8000"); // you could change the port number, but animation.html wants 8000
+  sleep(1);
+
+  free(bmp.data);
+  free(serialized_bmp);
+
+  return 0;
 }
