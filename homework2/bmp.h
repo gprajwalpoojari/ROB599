@@ -51,3 +51,5 @@ size_t bmp_calculate_size(bitmap_t *bmp);
 // write the bmp file to memory at data, which must be at least
 // bmp_calculate_size large.
 void bmp_serialize(bitmap_t *bmp, uint8_t *data);
+
+void gx_clear(bitmap_t *bmp, color_bgr_t color);

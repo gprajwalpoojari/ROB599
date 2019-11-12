@@ -51,25 +51,3 @@ void bmp_serialize(bitmap_t *bmp, uint8_t *data) {
 
   }
 }
-
-/*int main(void) {
-    bitmap_t bmp = { 0 }; // initialize to zeros
-    bmp.width = 640;
-    bmp.height = 480;
-    bmp.data = calloc(bmp.width * bmp.height, sizeof(color_bgr_t));
-
-    size_t bmp_size = bmp_calculate_size(&bmp);
-    uint8_t *serialized_bmp = malloc(bmp_size);
-    bmp_serialize(&bmp, serialized_bmp);
-
-    FILE *f = fopen("my_image.bmp", "wb");
-    fwrite(serialized_bmp, bmp_size, 1, f);
-    fclose(f);
-
-
-    // remember to later free the bmp.data when we are done using it
-    free(bmp.data);
-    free(serialized_bmp);
-
-    return 0;
-}*/
