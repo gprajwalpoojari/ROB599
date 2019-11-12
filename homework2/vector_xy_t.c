@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-vector_xy_i32_t *create_vector(void){
+vector_xy_t *create_vector(void){
   vector_xy_t *v = malloc(sizeof(vector_xy_t));
   v->size_x = 0;
   v->size_y = 0;

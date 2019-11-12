@@ -45,7 +45,7 @@ void bmp_serialize(bitmap_t *bmp, uint8_t *data) {
   memcpy(data_out, &info_header, sizeof(info_header));
   data_out += sizeof(info_header);
 
-  for (int i = 0; i < bmp->height; i++){
+  for (int i = bmp->height -1; i >= 0; i--){
     memcpy(data_out, &bmp->data[i * bmp->width], bmp->width * sizeof(color_bgr_t));
     data_out += bmp->width * sizeof(color_bgr_t);
 

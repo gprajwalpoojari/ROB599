@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
   free(bmp.data);
   free(serialized_bmp);
-  free(vector);
+  //free(vector);
   free(v->data_x);
   free(v->data_y);
   free(v);
