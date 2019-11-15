@@ -10,7 +10,4 @@ vector_xy_t *create_vector(void){
   v->data_x = calloc(v->capacity, sizeof(double));
   v->data_y = calloc(v->capacity, sizeof(double));
   return v;
-  free(v->data_x);
-  free(v->data_y);
-  free(v);
 }

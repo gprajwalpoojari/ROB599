@@ -1,3 +1,6 @@
+#define PI 3.1415
+#define MIN(X, Y) (((Y) < (X)) ? (Y) : (X))
+#define MAX(X, Y) (((Y) > (X)) ? (Y) : (X))
 #include "bmp.h"
 #include "vector_xy_i32_t.h"
 #include "image_server.h"
@@ -7,17 +10,20 @@
 #include <unistd.h>
 #include <string.h>
 #include <math.h>
+#include <stdbool.h>
 
-
-void gx_clear(bitmap_t *bmp, color_bgr_t color){
+//creating background of any color
+void gx_clear(bitmap_t *bmp, color_bgr_t color)
+{
   for (int i = 0; i < bmp->width * bmp->height;i++){
     bmp->data[i].b = color.b;
     bmp->data[i].g = color.g;
     bmp->data[i].r = color.r;
   }
 }
-
-vector_xy_i32_t *gx_rasterize_line(int x0,int y0, int x1, int y1){
+//rasterizes line
+vector_xy_i32_t *gx_rasterize_line(int x0,int y0, int x1, int y1)
+{
   vector_xy_i32_t *v = malloc(sizeof(vector_xy_i32_t));
   create_vector_i32(v);
   int dx = abs(x1 - x0);
@@ -31,11 +37,9 @@ vector_xy_i32_t *gx_rasterize_line(int x0,int y0, int x1, int y1){
       v->data_x = realloc(v->data_x, v->capacity * sizeof(int32_t));
       v->data_y = realloc(v->data_y, v->capacity * sizeof(int32_t));
     }
-    if(v->size == 0 /*&& v->size_y == 0*/){
+    if(v->size == 0){
       v->data_x[0] = x0;
       v->data_y[0] = y0;
-      //v->size_x++;
-      //v->size_y++;
     }
     else{
       if (x0 == x1 && y0 == y1){
@@ -46,35 +50,33 @@ vector_xy_i32_t *gx_rasterize_line(int x0,int y0, int x1, int y1){
         err += dy;
         x0 += sx;
         v->data_x[v->size] = x0;
-        //v->size_x++;
       }
       else{
         v->data_x[v->size] = x0;
-        //v->size_x++;
       }
       if (e2 <= dx){
         err += dx;
         y0 += sy;
         v->data_y[v->size] = y0;
-        //v->size_y++;
       }
       else{
         v->data_y[v->size] = y0;
-        //v->size_y++;
       }
     }
     v->size++;
   }
   return v;
 }
-
-void gx_draw_line(bitmap_t *bmp, vector_xy_i32_t *points, color_bgr_t color){
+//color the pixels of rasterized line
+void gx_draw_line(bitmap_t *bmp, vector_xy_i32_t *points, color_bgr_t color)
+{
   for(int i = 0; i < points->size - 1;i++){
       bmp->data[(points->data_y[i]) * bmp->width + points->data_x[i]] = color;
   }
 }
-
-vector_xy_t *rectangle(int width, int height){
+//create rectangle with center at (0,0) of a given width and height
+vector_xy_t *rectangle(int width, int height)
+{
   double var_x = width / 2;
   double var_y = height / 2;
   vector_xy_t *v = create_vector();
@@ -94,8 +96,42 @@ vector_xy_t *rectangle(int width, int height){
   }
   return v;
 }
-
-void gx_draw_polygon(bitmap_t *bmp,vector_xy_t *v, color_bgr_t color){
+//create triangle with given width centered at (0,0)
+vector_xy_t *triangle(int width)
+{
+  vector_xy_t *v = create_vector();
+  v->data_x[0] = 8 * width / 9;
+  v->data_x[1] = - 4 * width / 9;
+  v->data_x[2] = - 4 * width / 9;
+  v->data_y[0] = 0;
+  v->data_y[1] = width / 2;
+  v->data_y[2] = - width / 2;
+  v->size = 3;
+  return v;
+}
+//translate the vector of points by given x and y values
+void translate_vector(vector_xy_t *rectangle_data, double x, double y)
+{
+  for (int i = 0; i < rectangle_data->size; i++){
+    rectangle_data->data_x[i] += x;
+    rectangle_data->data_y[i] += y;
+  }
+}
+//rotate the vector of points by given angle theta
+void rotate_vector(vector_xy_t *triangle_data, double theta)
+{
+  double cosine = cos(PI * theta / 180);
+  double sine = sin(PI * theta / 180);
+  for (int i = 0; i < triangle_data->size; i++){
+    double x = triangle_data->data_x[i];
+    double y = triangle_data->data_y[i];
+    triangle_data->data_x[i] = x * cosine - y * sine;
+    triangle_data->data_y[i] = x * sine + y * cosine;
+  }
+}
+//round off, rasterize and then color the pixels of rectangle
+void gx_draw_polygon(bitmap_t *bmp,vector_xy_t *v, color_bgr_t color)
+{
   vector_xy_i32_t *vector = malloc(sizeof(vector_xy_i32_t));
   create_vector_i32(vector);
   double epsilon = 1e-6;
@@ -149,9 +185,83 @@ void gx_draw_polygon(bitmap_t *bmp,vector_xy_t *v, color_bgr_t color){
     gx_draw_line(bmp, vector_rasterize[i], color);
     free(vector_rasterize[i]->data_x);
     free(vector_rasterize[i]->data_y);
+    free(vector_rasterize[i]);
   }
   free(vector->data_x);
   free(vector->data_y);
+  free(vector);
+}
+//fill the entire polygon with colours
+void gx_fill_polygon(bitmap_t *bmp, color_bgr_t color)
+{
+  int x0[bmp->height];
+  int x1[bmp->height];
+  for (int i = 0; i < bmp->height; i++){
+    x0[i] = -1;
+    x1[i] = -1;
+  }
+  //identify minimum and maximum values for filling colors
+  int width = 0;
+  bool val[bmp->height];
+  for (int i = 0; i < bmp->height; i++){
+    val[i] = 0;
+  }
+  //check if the number of points in a horizontal line is greater than 1
+  for (int y = 0; y < bmp->height; y++){
+    int count = 0;
+    for (int i = 0; i < bmp->width; i++){
+      if (bmp->data[i + width].b == color.b && bmp->data[i + width].g == color.g && bmp->data[i + width].r == color.r){
+        count++;
+      }
+      if (count > 1){
+        val[y] = 1;
+      }
+      else{
+        val[y] = 0;
+      }
+    }
+    width += bmp->width;
+  }
+  width = 0;
+  for (int y = 0; y < bmp->height; y++){
+    for (int i = 0; i < bmp->width; i++){
+      if (val[y] == 1){
+        int count_val = 0;
+        if (bmp->data[i + width].b == color.b && bmp->data[i + width].g == color.g && bmp->data[i + width].r == color.r){
+          count_val++;
+        }
+        if (count_val == 1){
+          if (x0[y] == -1){
+            x0[y] = i;
+            x1[y] = i;
+          }
+          else{
+            x0[y] = MIN(x0[y], i);
+            x1[y] = MAX(x1[y], i);
+          }
+        }
+        if (count_val == 2){
+          break;
+        }
+      }
+    }
+    width += bmp->width;
+  }
+  //fill color between min and max values
+  width = 0;
+  for (int y = 0; y < bmp->height; y++){
+    for (int i = 0; i < bmp->width; i++){
+      if (x0[y] != -1){
+        if (i > x0[y] && i <= x1[y]){
+          bmp->data[i + width].b = 255;
+          bmp->data[i + width].g = 255;
+          bmp->data[i + width].r = 255;
+        }
+      }
+
+    }
+    width += bmp->width;
+  }
 }
 
 int main(int argc, char **argv) {
@@ -179,19 +289,82 @@ int main(int argc, char **argv) {
              //color the background black
              gx_clear(&bmp, background);
              //create line vector
-             vector_xy_i32_t *vector = gx_rasterize_line(10, 10, 200, 200);
+             vector_xy_i32_t *v = gx_rasterize_line(10, 10, 200, 200);
              //draw line with colored points
-             gx_draw_line(&bmp, vector, color);
+             gx_draw_line(&bmp, v, color);
              //serialize image data
             break;
     case 3 :
             ;
             //create vector of points for rectangle with a given width and height
-            vector_xy_t *v = rectangle(950, 950);
-            gx_draw_polygon(&bmp, v, color);
-            free(v->data_x);
-            free(v->data_y);
-            free(v);
+            vector_xy_t *rectangle_3 = rectangle(4, 4);
+            gx_draw_polygon(&bmp, rectangle_3, color);
+            free(rectangle_3->data_x);
+            free(rectangle_3->data_y);
+            free(rectangle_3);
+            break;
+    case 4 :
+            ;
+            //create vector of points for rectangle with a given width and height
+            vector_xy_t *rectangle_4 = rectangle(4, 4);
+            translate_vector(rectangle_4, 2, 2);
+            gx_draw_polygon(&bmp, rectangle_4, color);
+            free(rectangle_4->data_x);
+            free(rectangle_4->data_y);
+            free(rectangle_4);
+            break;
+    case 5 :
+            ;
+            //create vector of points for rectangle with a given width and height
+            vector_xy_t *rectangle_5 = rectangle(5, 5);
+            translate_vector(rectangle_5, 2, 2);
+            gx_draw_polygon(&bmp, rectangle_5, color);
+            free(rectangle_5->data_x);
+            free(rectangle_5->data_y);
+            free(rectangle_5);
+            break;
+    case 6 :
+            ;
+            //create vector of points for rectangle with a given width and height
+            vector_xy_t *rectangle_6 = rectangle(bmp.width - 40, bmp.height - 40);
+            translate_vector(rectangle_6, bmp.width / 2, bmp.height / 2);
+            gx_draw_polygon(&bmp, rectangle_6, color);
+            free(rectangle_6->data_x);
+            free(rectangle_6->data_y);
+            free(rectangle_6);
+            break;
+    case 7 :
+            ;
+            //create vector of points for rectangle with a given width and height
+            vector_xy_t *rectangle_7 = rectangle(bmp.width - 40, bmp.height - 40);
+            translate_vector(rectangle_7, bmp.width / 2, bmp.height / 2);
+            gx_draw_polygon(&bmp, rectangle_7, color);
+            gx_fill_polygon(&bmp, color);
+            free(rectangle_7->data_x);
+            free(rectangle_7->data_y);
+            free(rectangle_7);
+            break;
+    case 8 :
+            ;
+            vector_xy_t *triangle_8 = triangle( 21 );
+            translate_vector(triangle_8, 400, 400);
+            gx_draw_polygon(&bmp, triangle_8, color);
+            gx_fill_polygon(&bmp, color);
+            free(triangle_8->data_x);
+            free(triangle_8->data_y);
+            free(triangle_8);
+            break;
+    case 9 :
+            ;
+            vector_xy_t *triangle_data = triangle( 21 );
+            //clockwise positive; theta in degrees
+            rotate_vector(triangle_data, -30);
+            translate_vector(triangle_data, 400, 400);
+            gx_draw_polygon(&bmp, triangle_data, color);
+            gx_fill_polygon(&bmp, color);
+            free(triangle_data->data_x);
+            free(triangle_data->data_y);
+            free(triangle_data);
             break;
   }
   size_t bmp_size = bmp_calculate_size(&bmp);

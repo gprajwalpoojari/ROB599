@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include<math.h>
-#include<stdlib.h>
-#include<stdbool.h>
+#include <stdio.h>
+#include <math.h>
+#include <stdlib.h>
+#include <stdbool.h>
 #define PI 3.1415
 
 typedef struct data{
