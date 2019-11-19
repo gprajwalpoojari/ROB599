@@ -10,6 +10,7 @@
 #include "bmp.h"
 #include "graphics.h"
 #include "image_server.h"
+#include "collision.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -111,38 +112,22 @@ int main(void){
   c_l[2] = create_point(449.1, 349.1);
   //locate initial centroid of robot
   vector_xy_t *c_r = create_point(bmp.width / 2, bmp.height / 2);
-  //create border for image
-  create_border(&bmp, border);
   //double pointer for storing all lamp data at a single place
   vector_xy_t **lamp = malloc(sizeof(vector_xy_t));
-  //store lamp data in lamp and display image
-  lamp[0] = initialize_lamp(&bmp, 124.1, 224.4, color_lamp);
-  lamp[1] = initialize_lamp(&bmp, 349.1, 99.1, color_lamp);
-  lamp[2] = initialize_lamp(&bmp, 449.1, 349.1, color_lamp);
-  //store robot dtaa in lamp and display image
-  initialize_robot(&bmp, color_robot);
   //serialize image and display
   size_t bmp_size = bmp_calculate_size(&bmp);
   uint8_t *serialized_bmp = malloc(bmp_size);
-  bmp_serialize(&bmp, serialized_bmp);
-  //write data to file
-  FILE *f = fopen("my_image.bmp", "wb");
-  fwrite(serialized_bmp, bmp_size, 1, f);
-  fclose(f);
-  //get data on server
-  image_server_set_data(bmp_size, serialized_bmp);
-  image_server_start("8000"); // you could change the port number, but animation.html wants 8000
-  sleep(1);
   //movement
 
-  double theta = 0;
-
+  //vector of lamp direction from robot
+  vector_xy_t *dir = create_vector();
+  //vectors for left and light sensors
   vector_xy_t *eye_l = initialize_sensor(-60);
   vector_xy_t *eye_r = initialize_sensor(60);
-  vector_xy_t *dir = create_vector();
+  double theta = 0;
 
-
-  for(int a = 0; a < 100; a++){
+  while (1){
+    //track left and right wheel movement for each frame
     double move_l = 0;
     double move_r = 0;
     double forward_dist = 0;
@@ -150,75 +135,80 @@ int main(void){
     temp_bmp.width = 640;
     temp_bmp.height = 480;
     temp_bmp.data = calloc(temp_bmp.width * temp_bmp.height , sizeof(color_bgr_t));
-    vector_xy_t *temp_robot = triangle(21);
+    //create robot at (0,0)
+    vector_xy_t *robot = triangle(21);
+    //create border
     create_border(&temp_bmp, border);
-
+    //initialize lamps
     lamp[0] = initialize_lamp(&temp_bmp, 124.1, 224.4, color_lamp);
     lamp[1] = initialize_lamp(&temp_bmp, 349.1, 99.1, color_lamp);
     lamp[2] = initialize_lamp(&temp_bmp, 449.1, 349.1, color_lamp);
-
+    //calculate net left and right wheel movement
     for (int i = 0; i < 3; i++){
       dir->data_x[1] = c_l[i]->data_x[0];
       dir->data_y[1] = c_l[i]->data_y[0];
       dir->data_x[0] = c_r->data_x[0];
       dir->data_y[0] = c_r->data_y[0];
       dir->size = 2;
-      double dist_sq = pow(c_l[i]->data_x[0] - c_r->data_x[0], 2) + pow(c_l[i]->data_y[0] - c_r->data_y[0], 2);
+      double dist_sq = pow((dir->data_x[1] - dir->data_x[0]), 2) + pow((dir->data_y[1] - dir->data_y[0]), 2);
       move_l += MAX(0.0, dot(*dir, *eye_r)) * POWER / dist_sq;
       move_r += MAX(0.0, dot(*dir, *eye_l)) * POWER / dist_sq;
-
     }
-    //printf("%f ",move_r);
+    //calculate actual movement
     move_l = MIN(MAXIMUM, move_l);
     move_r = MIN(MAXIMUM, move_r);
-    //printf("%f \n", move_l);
+    //calculate angle of rotation from theta = 0
     theta += (move_r - move_l) / BASE;
-    forward_dist = (move_l + move_r) / 2;
-    rotate_vector(temp_robot, -180 * theta / PI);
+    forward_dist = (move_r + move_l) / 2;
+    //update centroid
     c_r->data_x[0] += forward_dist * cos(-theta);
     c_r->data_y[0] += forward_dist * sin(-theta);
-    translate_vector(temp_robot, c_r->data_x[0], c_r->data_y[0]);
-    rotate_vector(eye_l, -180 * theta / PI);
-    rotate_vector(eye_r, -180 * theta / PI);
-    printf("%f\n",180 * 2 *theta / PI);
-    gx_draw_polygon(&temp_bmp, temp_robot, color_robot);
+    //update robot
+    rotate_vector(robot, - theta * 180 / PI);
+    translate_vector(robot, c_r->data_x[0], c_r->data_y[0]);
+    polygon_t p_triangle = create_polygon(robot);
+    polygon_t p_lamp0 = create_polygon(lamp[0]);
+    polygon_t p_lamp1 = create_polygon(lamp[1]);
+    polygon_t p_lamp2 = create_polygon(lamp[2]);
+
+    //update sensor vectors
+    rotate_vector(eye_l, -180 * ((move_r - move_l) / BASE) / PI);
+    rotate_vector(eye_r, -180 * ((move_r - move_l) / BASE) / PI);
+    //draw and fill updated polygon
+    gx_draw_polygon(&temp_bmp, robot, color_robot);
     gx_fill_polygon(&temp_bmp, color_robot);
-    //printf("%f %f\n", c_r->data_x[0], c_r->data_y[0]);
+    //display image
     bmp_size = bmp_calculate_size(&temp_bmp);
     bmp_serialize(&temp_bmp, serialized_bmp);
     //write data to file
-    f = fopen("my_image.bmp", "wb");
+    FILE *f = fopen("my_image.bmp", "wb");
     fwrite(serialized_bmp, bmp_size, 1, f);
     fclose(f);
-
     //get data on server
     image_server_set_data(bmp_size, serialized_bmp);
     image_server_start("8000"); // you could change the port number, but animation.html wants 8000
-    sleep(1);
-    free_data(temp_robot);
+    check_collision(p_triangle, p_lamp0, robot, lamp[0]);
+    check_collision(p_triangle, p_lamp1, robot, lamp[1]);
+    check_collision(p_triangle, p_lamp2, robot, lamp[2]);
+    int seconds = 0;
+    long nanoseconds = 40 * 1000 * 1000;
+    struct timespec interval = { seconds, nanoseconds };
+    nanosleep(&interval, NULL);
+    free_data(robot);
+    free(temp_bmp.data);
   }
-
-
-
-
-
-
-
-//  free(temp_bmp.data);
+  //free all allocated memory
   for (int i = 0; i < 3; i++){
     free_data(lamp[i]);
     free_data(c_l[i]);
   }
   free(lamp);
   free(c_l);
-
   free_data(eye_l);
   free_data(eye_r);
   free_data(dir);
   free_data(c_r);
   free(serialized_bmp);
   free(bmp.data);
-
-  //free_data(temp_robot);
   return 0;
 }

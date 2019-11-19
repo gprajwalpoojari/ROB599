@@ -14,5 +14,5 @@ rasterize:	rasterize.c	bmp.c	image_server.c	vector_xy_i32_t.c vector_xy_t.c grap
 
 
 
-braitenberg:	braitenberg.c	bmp.c	image_server.c	vector_xy_i32_t.c vector_xy_t.c graphics.c
+braitenberg:	braitenberg.c	bmp.c	image_server.c	vector_xy_i32_t.c vector_xy_t.c graphics.c collision.c
 				gcc -o	$@	$^	-std=c11	-lpthread	-lm
