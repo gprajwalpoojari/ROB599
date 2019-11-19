@@ -189,19 +189,13 @@ int main(void){
     image_server_set_data(bmp_size, serialized_bmp);
     image_server_start("8000"); // you could change the port number, but animation.html wants 8000
     sleep(1);
-    bool c1 = check_collision(p_triangle, p_lamp0);//, robot, lamp[0]);
-    bool c2 = check_collision(p_triangle, p_lamp1);//, robot, lamp[1]);
-    bool c3 = check_collision(p_triangle, p_lamp2);//, robot, lamp[2]);
-    /*if (c1 == true || c2 == true || c3 == true){
-      printf("Collision!\n");
-    }
-    else{
-      printf("No collision\n");
-    }*/
-    /*int seconds = 0;
+    bool c1 = check_collision(p_triangle, p_lamp0);
+    bool c2 = check_collision(p_triangle, p_lamp1);
+    bool c3 = check_collision(p_triangle, p_lamp2);
+    int seconds = 0;
     long nanoseconds = 40 * 1000 * 1000;
     struct timespec interval = { seconds, nanoseconds };
-    nanosleep(&interval, NULL);*/
+    nanosleep(&interval, NULL);
     free_data(robot);
     free(temp_bmp.data);
     for (int i = 0; i < 4; i++){
