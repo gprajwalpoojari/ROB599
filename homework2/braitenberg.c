@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <math.h>
+#include <stdbool.h>
 
 
 vector_xy_t *initialize_lamp(bitmap_t *bmp, double x, double y, color_bgr_t color)
@@ -126,7 +127,7 @@ int main(void){
   vector_xy_t *eye_r = initialize_sensor(60);
   double theta = 0;
 
-  while (1){
+  for (int z = 0; z < 100; z++){
     //track left and right wheel movement for each frame
     double move_l = 0;
     double move_r = 0;
@@ -166,10 +167,10 @@ int main(void){
     //update robot
     rotate_vector(robot, - theta * 180 / PI);
     translate_vector(robot, c_r->data_x[0], c_r->data_y[0]);
-    polygon_t p_triangle = create_polygon(robot);
-    polygon_t p_lamp0 = create_polygon(lamp[0]);
-    polygon_t p_lamp1 = create_polygon(lamp[1]);
-    polygon_t p_lamp2 = create_polygon(lamp[2]);
+    polygon_t *p_triangle = create_polygon(robot);
+    polygon_t *p_lamp0 = create_polygon(lamp[0]);
+    polygon_t *p_lamp1 = create_polygon(lamp[1]);
+    polygon_t *p_lamp2 = create_polygon(lamp[2]);
 
     //update sensor vectors
     rotate_vector(eye_l, -180 * ((move_r - move_l) / BASE) / PI);
@@ -187,15 +188,39 @@ int main(void){
     //get data on server
     image_server_set_data(bmp_size, serialized_bmp);
     image_server_start("8000"); // you could change the port number, but animation.html wants 8000
-    check_collision(p_triangle, p_lamp0, robot, lamp[0]);
-    check_collision(p_triangle, p_lamp1, robot, lamp[1]);
-    check_collision(p_triangle, p_lamp2, robot, lamp[2]);
-    int seconds = 0;
+    sleep(1);
+    bool c1 = check_collision(p_triangle, p_lamp0);//, robot, lamp[0]);
+    bool c2 = check_collision(p_triangle, p_lamp1);//, robot, lamp[1]);
+    bool c3 = check_collision(p_triangle, p_lamp2);//, robot, lamp[2]);
+    /*if (c1 == true || c2 == true || c3 == true){
+      printf("Collision!\n");
+    }
+    else{
+      printf("No collision\n");
+    }*/
+    /*int seconds = 0;
     long nanoseconds = 40 * 1000 * 1000;
     struct timespec interval = { seconds, nanoseconds };
-    nanosleep(&interval, NULL);
+    nanosleep(&interval, NULL);*/
     free_data(robot);
     free(temp_bmp.data);
+    for (int i = 0; i < 4; i++){
+      free_data(p_lamp0->line[i]);
+      free_data(p_lamp1->line[i]);
+      free_data(p_lamp2->line[i]);
+
+    }
+    for (int i = 0; i < 3; i++){
+      free_data(p_triangle->line[i]);
+    }
+    free(p_lamp0->line);
+    free(p_lamp1->line);
+    free(p_lamp2->line);
+    free(p_triangle->line);
+    free(p_lamp0);
+    free(p_lamp1);
+    free(p_lamp2);
+    free(p_triangle);
   }
   //free all allocated memory
   for (int i = 0; i < 3; i++){
