@@ -4,13 +4,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-/*float overlap(polygon_t polygon_a, polygon_t polygon_b, int var)
-{
-  float vx = polygon_b.points[0][0] - polygon_a.points[0][var];
-  float vy = polygon_b.points[1][0] - polygon_a.points[1][var];
-  float value = polygon_a.lines[0][var] * vy - vx * polygon_a.lines[1][var];
-  return value;
-}*/
 
 polygon_t *create_polygon(vector_xy_t *data)
 {
@@ -45,8 +38,9 @@ double cross_product(vector_xy_t *line_1, vector_xy_t *line_2, int point_number)
   return cross_product;
 }
 
-bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b){
-  bool collision;
+bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b)
+{
+  bool collision = false;
   int both_zero_check = 0;
   double prod[2];
   int check[2];
@@ -64,7 +58,7 @@ bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b){
 
           }
         }
-        if(prod[0] * prod[1] < 0 || (prod[0] == 0 || prod[1] == 0)){
+        if(prod[0] * prod[1] <= 0){
           check[count] = 1;
         }
         else{
@@ -76,11 +70,61 @@ bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b){
       }
       if (check[0] == 1 && check[1] == 1){
         if (both_zero_check != 2){
-          printf("collision!\n");
+          collision = true;
+          printf("Collision!\n");
           break;
         }
       }
     }
   }
-  return 0;
+  return collision;
+}
+
+void overlap(polygon_t *polygon_a, polygon_t *polygon_b)
+{
+  double temp_1[polygon_a->n_line];
+  double temp_2[polygon_b->n_line];
+  bool overlap_check_1 = false;
+  bool overlap_check_2 = false;
+  for (int polygon_n = 0; polygon_n < 2; polygon_n++){
+    if (polygon_n == 0){
+      for (int i = 0; i < polygon_a->n_line; i++){
+        temp_1[i] = cross_product(polygon_a->line[i], polygon_b->line[0], 0);
+      }
+      int positive = 0;
+      int negative = 0;
+      for (int i = 0; i < polygon_a->n_line; i++){
+        if (temp_1[i] >=0){
+          positive++;
+        }
+        else if(temp_1[i] <= 0){
+          negative++;
+        }
+      }
+      if (positive == polygon_a->n_line || negative == polygon_a->n_line){
+        overlap_check_1 = true;
+      }
+    }
+    else{
+      for (int i = 0; i < polygon_b->n_line; i++){
+        temp_2[i] = cross_product(polygon_b->line[i], polygon_a->line[0], 0);
+      }
+      int positive = 0;
+      int negative = 0;
+      for (int i = 0; i < polygon_b->n_line; i++){
+        if (temp_2[i] >=0){
+          positive++;
+        }
+        else if(temp_2[i] <= 0){
+          negative++;
+        }
+      }
+      if (positive == polygon_b->n_line || negative == polygon_b->n_line){
+        overlap_check_2 = true;
+      }
+    }
+  }
+  if (overlap_check_1 && overlap_check_2 == true){
+    printf("Collision!");
+  }
 }

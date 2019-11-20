@@ -21,4 +21,4 @@ double cross_product(vector_xy_t *line_1, vector_xy_t *line_2, int point_number)
 
 bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b);//, vector_xy_t *data_1, vector_xy_t *data_2);
 
-float overlap(polygon_t polygon_a, polygon_t polygon_b, int var);
+void overlap(polygon_t *polygon_a, polygon_t *polygon_b);
