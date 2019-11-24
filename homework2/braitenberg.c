@@ -105,7 +105,7 @@ int main(int argc, char **argv){
     bmp.height = 480;
     bmp.data = calloc(bmp.width * bmp.height , sizeof(color_bgr_t));
     //background color data
-    color_bgr_t background = {0};
+    //color_bgr_t background = {0};
     //border color
     color_bgr_t border = create_color(255, 255, 255);
     //lamp color
@@ -193,22 +193,32 @@ int main(int argc, char **argv){
       //update robot
       rotate_vector(robot, - theta * 180 / PI);
       translate_vector(robot, c_r->data_x[0], c_r->data_y[0]);
-      //create polygons
+      //create polygon data types for integrating collision code
       polygon_t *p_triangle = create_polygon(robot);
       polygon_t *p_lamp0 = create_polygon(lamp[0]);
       polygon_t *p_lamp1 = create_polygon(lamp[1]);
       polygon_t *p_lamp2 = create_polygon(lamp[2]);
       //check collision for each polygon
       bool c1 = check_collision(p_triangle, p_lamp0);
-      overlap(p_triangle, p_lamp0);
+      overlap(p_triangle, p_lamp0, c1);
+      while (c1 == true){
+        c1 = resolve_collision(c_l[0], c_r, p_lamp0, p_triangle, robot);
+      }
       bool c2 = check_collision(p_triangle, p_lamp1);
-      overlap(p_triangle, p_lamp1);
+      overlap(p_triangle, p_lamp1, c2);
+      while (c2 == true){
+        c2 = resolve_collision(c_l[1], c_r, p_lamp1, p_triangle, robot);
+      }
       bool c3 = check_collision(p_triangle, p_lamp2);
-      overlap(p_triangle, p_lamp2);
+      overlap(p_triangle, p_lamp2, c3);
+      while (c3 == true){
+        c3 = resolve_collision(c_l[2], c_r, p_lamp2, p_triangle, robot);
+
+      }
       //update sensor vectors
       rotate_vector(eye_l, -180 * ((move_r - move_l) / BASE) / PI);
       rotate_vector(eye_r, -180 * ((move_r - move_l) / BASE) / PI);
-      //draw and fill updated polygon
+      //draw and fill updated polygon in temp_bmp
       gx_draw_polygon(&temp_bmp, robot, color_robot);
       gx_fill_polygon(&temp_bmp, color_robot);
       //display image
@@ -223,7 +233,7 @@ int main(int argc, char **argv){
         image_server_set_data(bmp_size, serialized_bmp);
         image_server_start("8000"); // you could change the port number, but animation.html wants 8000
         int seconds = 0;
-        long nanoseconds = 40 * 1000 * 1000;
+        long nanoseconds = 20 * 1000 * 1000;
         struct timespec interval = { seconds, nanoseconds };
         nanosleep(&interval, NULL);
       }

@@ -51,7 +51,6 @@ bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b)
         for (int k = 0; k < 2; k++){
           if (count == 0){
             prod[k] = cross_product(polygon_a->line[i], polygon_b->line[j], k);
-
           }
           else{
             prod[k] = cross_product(polygon_b->line[j], polygon_a->line[i], k);
@@ -69,9 +68,8 @@ bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b)
         }
       }
       if (check[0] == 1 && check[1] == 1){
-        if (both_zero_check != 2){
+        if (both_zero_check < 2){
           collision = true;
-          printf("Collision!\n");
           break;
         }
       }
@@ -80,51 +78,89 @@ bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b)
   return collision;
 }
 
-void overlap(polygon_t *polygon_a, polygon_t *polygon_b)
+bool overlap(polygon_t *polygon_a, polygon_t *polygon_b, bool collision)
 {
-  double temp_1[polygon_a->n_line];
-  double temp_2[polygon_b->n_line];
-  bool overlap_check_1 = false;
-  bool overlap_check_2 = false;
-  for (int polygon_n = 0; polygon_n < 2; polygon_n++){
-    if (polygon_n == 0){
-      for (int i = 0; i < polygon_a->n_line; i++){
-        temp_1[i] = cross_product(polygon_a->line[i], polygon_b->line[0], 0);
-      }
-      int positive = 0;
-      int negative = 0;
-      for (int i = 0; i < polygon_a->n_line; i++){
-        if (temp_1[i] >=0){
-          positive++;
+  if (collision == false){
+    double temp_1[polygon_a->n_line];
+    double temp_2[polygon_b->n_line];
+    bool overlap_check_1 = false;
+    bool overlap_check_2 = false;
+    for (int polygon_n = 0; polygon_n < 2; polygon_n++){
+      if (polygon_n == 0){
+        for (int i = 0; i < polygon_a->n_line; i++){
+          temp_1[i] = cross_product(polygon_a->line[i], polygon_b->line[0], 0);
         }
-        else if(temp_1[i] <= 0){
-          negative++;
+        int positive = 0;
+        int negative = 0;
+        for (int i = 0; i < polygon_a->n_line; i++){
+          if (temp_1[i] >=0){
+            positive++;
+          }
+          else if(temp_1[i] <= 0){
+            negative++;
+          }
+        }
+        if (positive == polygon_a->n_line || negative == polygon_a->n_line){
+          overlap_check_1 = true;
         }
       }
-      if (positive == polygon_a->n_line || negative == polygon_a->n_line){
-        overlap_check_1 = true;
+      else{
+        for (int i = 0; i < polygon_b->n_line; i++){
+          temp_2[i] = cross_product(polygon_b->line[i], polygon_a->line[0], 0);
+        }
+        int positive = 0;
+        int negative = 0;
+        for (int i = 0; i < polygon_b->n_line; i++){
+          if (temp_2[i] >=0){
+            positive++;
+          }
+          else if(temp_2[i] <= 0){
+            negative++;
+          }
+        }
+        if (positive == polygon_b->n_line || negative == polygon_b->n_line){
+          overlap_check_2 = true;
+        }
       }
     }
-    else{
-      for (int i = 0; i < polygon_b->n_line; i++){
-        temp_2[i] = cross_product(polygon_b->line[i], polygon_a->line[0], 0);
-      }
-      int positive = 0;
-      int negative = 0;
-      for (int i = 0; i < polygon_b->n_line; i++){
-        if (temp_2[i] >=0){
-          positive++;
-        }
-        else if(temp_2[i] <= 0){
-          negative++;
-        }
-      }
-      if (positive == polygon_b->n_line || negative == polygon_b->n_line){
-        overlap_check_2 = true;
-      }
+    if (overlap_check_1 && overlap_check_2 == true){
+      collision = true;
     }
   }
-  if (overlap_check_1 && overlap_check_2 == true){
+  return collision;
+}
+
+
+bool resolve_collision(vector_xy_t *lamp_centroid, vector_xy_t *polygon_centroid, polygon_t *lamp_polygon, polygon_t *robot_polygon, vector_xy_t *robot_vector){
+  vector_xy_t *new_dir =  create_vector();
+  new_dir->data_x[1] = lamp_centroid->data_x[0];
+  new_dir->data_y[1] = lamp_centroid->data_y[0];
+  new_dir->data_x[0] = polygon_centroid->data_x[0];
+  new_dir->data_y[0] = polygon_centroid->data_y[0];
+  new_dir->size = 2;
+  vector_xy_t *horizontal = create_vector();
+  horizontal->data_x[1] = 1;
+  horizontal->data_y[1] = 0;
+  horizontal->data_x[0] = 0;
+  horizontal->data_y[0] = 0;
+  horizontal->size = 2;
+  double cos_theta = dot(*new_dir, *horizontal);
+  //double dist = sqrt(pow(new_dir->data_x[1] - new_dir->data_x[0], 2) + pow(new_dir->data_y[1] - new_dir->data_y[0], 2));
+  double h_movement = 0.5 * (1 - cos_theta);
+  double v_movement;
+  if (new_dir->data_y[1] > new_dir->data_y[0]){
+    v_movement = - 0.5 * cos_theta;
+  }
+  else{
+    v_movement = 0.5 * cos_theta;
+  }
+  translate_vector(robot_vector, h_movement, v_movement);
+  robot_polygon = create_polygon(robot_vector);
+  bool c1 = check_collision(robot_polygon, lamp_polygon);
+  if (c1 == true){
     printf("Collision!");
   }
+  //free_data(new_dir);
+  free_data(horizontal);
+  return c1;
 }
