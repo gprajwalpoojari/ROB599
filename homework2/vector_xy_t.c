@@ -2,12 +2,16 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-vector_xy_t *create_vector(void){
-  vector_xy_t *v = malloc(sizeof(vector_xy_t));
+void initialize_vector(vector_xy_t *v)
+{
   v->size = 0;
-  //v->size_y = 0;
-  v->capacity = 16;
-  v->data_x = calloc(v->capacity, sizeof(double));
-  v->data_y = calloc(v->capacity, sizeof(double));
-  return v;
+  v->capacity = 32;
+  v->point = calloc(v->capacity, sizeof(point_t));
+}
+
+
+void free_vector(vector_xy_t *v)
+{
+  free(v->point);
+  free(v);
 }
