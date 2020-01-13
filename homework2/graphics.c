@@ -67,10 +67,11 @@ void translate_vector(vector_xy_t *polygon_points, double x, double y)
 }
 
 //rotate the vector of points by given angle theta
+//anticlockwise rotation considered positive
 void rotate_vector(vector_xy_t *polygon_points, double theta)
 {
-  double cosine = cos(PI * (theta) / 180);
-  double sine = sin(PI * (theta) / 180);
+  double cosine = cos(PI * (-theta) / 180);
+  double sine = sin(PI * (-theta) / 180);
   for (int i = 0; i < polygon_points->size; i++){
     double x = polygon_points->point[i].x;
     double y = polygon_points->point[i].y;
