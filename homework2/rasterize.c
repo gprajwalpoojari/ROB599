@@ -42,10 +42,9 @@ int main(int argc, char **argv) {
       line.point[0].y = 10;
       line.point[1].x = 200;
       line.point[1].y = 200;
-      vector_xy_i32_t *v = gx_rasterize_line(line);
+      vector_xy_i32_t v = gx_rasterize_line(line);
       //draw line with colored points
-      gx_draw_line(&bmp, v, color);
-      free_vector_i32(v);
+      gx_draw_line(&bmp, &v, color);
       break;
       case 3 :
       ;
@@ -132,8 +131,8 @@ int main(int argc, char **argv) {
       //create a vector of points for triangle
       vector_xy_t *triangle_9 = triangle( 21 );
       //perform rotation
-      //clockwise considered positive
-      rotate_vector(triangle_9, -30);
+      //anti - clockwise considered positive
+      rotate_vector(triangle_9, 30);
       //perform translation
       translate_vector(triangle_9, 400, 400);
       vector_xy_i32_t *triangle_9_outline = malloc(sizeof(vector_xy_i32_t));

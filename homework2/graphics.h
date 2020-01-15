@@ -26,7 +26,7 @@ void translate_vector(vector_xy_t *polygon_points, double x, double y);
 void rotate_vector(vector_xy_t *polygon_points, double theta);
 
 //rasterizes line
-vector_xy_i32_t *gx_rasterize_line(line_i32_t line);
+vector_xy_i32_t gx_rasterize_line(line_i32_t line);
 
 //color the pixels of rasterized line
 void gx_draw_line(bitmap_t *bmp, vector_xy_i32_t *v, color_bgr_t color);

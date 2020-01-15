@@ -83,7 +83,7 @@ void rotate_vector(vector_xy_t *polygon_points, double theta)
 }
 
 //rasterizes line
-vector_xy_i32_t *gx_rasterize_line(line_i32_t line)
+vector_xy_i32_t gx_rasterize_line(line_i32_t line)
 {
   vector_xy_i32_t *v = malloc(sizeof(vector_xy_i32_t));
   initialize_vector_i32(v);
@@ -125,20 +125,20 @@ vector_xy_i32_t *gx_rasterize_line(line_i32_t line)
     }
     v->size++;
   }
-  return v;
+  return *v;
 }
 
 //color the pixels of rasterized line
 void gx_draw_line(bitmap_t *bmp, vector_xy_i32_t *v, color_bgr_t color)
 {
-  for(int i = 0; i < v->size - 1;i++){
+  for(int i = 0; i < v->size; i++){
       bmp->data[(v->point[i].y) * bmp->width + v->point[i].x] = color;
   }
 }
 //round off, rasterize and then color the pixels of rectangle
 vector_xy_i32_t *gx_draw_polygon_outline(bitmap_t *bmp,vector_xy_t *v, color_bgr_t color)
 {
-  polygon_i32_t *polygon = malloc(sizeof(polygon_t));
+  polygon_i32_t *polygon = malloc(sizeof(polygon_i32_t));
   polygon->n_points = v->size;
   polygon->line = calloc(polygon->n_points,sizeof(line_i32_t));
   double epsilon = 1e-6;
@@ -155,30 +155,29 @@ vector_xy_i32_t *gx_draw_polygon_outline(bitmap_t *bmp,vector_xy_t *v, color_bgr
   }
   //rounding and storing in data type polygon_t
   for(int i = 0; i < polygon->n_points; i++){
-    int k =  i;
     for (int j = 0; j < 2; j++){
-      if (v->point[i].x == min_x){
+      int k =  i + j;
+      if (k == polygon->n_points){
+        k = 0;
+      }
+      if (v->point[k].x == min_x){
         polygon->line[i].point[j].x = (int32_t)ceil(v->point[k].x);
       }
       else{
         polygon->line[i].point[j].x = (int32_t)floor(v->point[k].x - epsilon);
       }
-      if (v->point[i].y == min_y){
+      if (v->point[k].y == min_y){
         polygon->line[i].point[j].y = (int32_t)ceil(v->point[k].y);
       }
       else{
         polygon->line[i].point[j].y = (int32_t)floor(v->point[k].y - epsilon);
-      }
-      k++;
-      if (k == polygon->n_points){
-        k = 0;
       }
     }
   }
   //rasterize
   vector_xy_i32_t *polygon_outline = calloc(polygon->n_points, sizeof(vector_xy_i32_t));
   for(int i = 0; i < polygon->n_points; i++){
-    polygon_outline[i] = *gx_rasterize_line(polygon->line[i]);
+    polygon_outline[i] = gx_rasterize_line(polygon->line[i]);
     //check if co ordinates are negative; if yes then set to zero
     for (int j = 0; j < polygon_outline[i].size; j++){
       if(polygon_outline[i].point[j].x < 0){

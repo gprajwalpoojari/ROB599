@@ -9,7 +9,6 @@ void initialize_vector(vector_xy_t *v)
   v->point = calloc(v->capacity, sizeof(point_t));
 }
 
-
 void free_vector(vector_xy_t *v)
 {
   free(v->point);
