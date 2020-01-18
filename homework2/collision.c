@@ -5,133 +5,146 @@
 #include <stdbool.h>
 
 
-polygon_t *create_polygon(vector_xy_t *data)
+
+//function for creating a polygon using points data
+polygon_t make_polygon(vector_xy_t robot)
 {
-  polygon_t *polygon = malloc(sizeof(polygon_t));
-  polygon->n_line = 0;
-  polygon->line = malloc(sizeof(vector_xy_t));
-  for (int i = 0; i < data->size; i++){
-    int tmp;
-    if (i == data->size - 1){
-      tmp = 0;
+  polygon_t polygon;
+  polygon.n_points = robot.size;
+  //create line vectors
+  polygon.line = calloc(polygon.n_points, sizeof(line_t));
+  for (int j = 0; j < polygon.n_points; j++){
+    int k;
+    if (j == polygon.n_points - 1){
+      k = 0;
     }
     else{
-      tmp = i + 1;
+      k = j + 1;
     }
-    polygon->line[i] = create_vector();
-    polygon->line[i]->data_x[0] = data->data_x[i];
-    polygon->line[i]->data_y[0] = data->data_y[i];
-    polygon->line[i]->data_x[1] = data->data_x[tmp];
-    polygon->line[i]->data_y[1] = data->data_y[tmp];
-    polygon->line[i]->size++;
-    polygon->n_line++;
+    polygon.line[j].point[0] = robot.point[j];
+    polygon.line[j].point[1] = robot.point[k];
   }
   return polygon;
 }
 
-double cross_product(vector_xy_t *line_1, vector_xy_t *line_2, int point_number){
-  double v1x = line_1->data_x[1] - line_1->data_x[0];
-  double v1y = line_1->data_y[1] - line_1->data_y[0];
-  double v2x = line_2->data_x[point_number] - line_1->data_x[0];
-  double v2y = line_2->data_y[point_number] - line_1->data_y[0];
-  double cross_product = v1x * v2y - v2x * v1y;
-  return cross_product;
+//function for computing cross product between a line and a point
+double cross_product(line_t line, point_t point)
+{
+  double x1, y1, x2, y2;
+  x1 = line.point[1].x - line.point[0].x;
+  y1 = line.point[1].y - line.point[0].y;
+  x2 = point.x - line.point[0].x;
+  y2 = point.y - line.point[0].y;
+  //cross product formula
+  double cross = x1 * y2 - x2 * y1;
+  return cross;
 }
 
-bool check_collision(polygon_t *polygon_a, polygon_t *polygon_b)
-{
-  bool collision = false;
-  int both_zero_check = 0;
-  double prod[2];
-  int check[2];
-  for (int i = 0; i < polygon_a->n_line; i++){
-    for (int j = 0; j < polygon_b->n_line; j++){
-      both_zero_check = 0;
-      for (int count = 0; count < 2; count++){
-        for (int k = 0; k < 2; k++){
-          if (count == 0){
-            prod[k] = cross_product(polygon_a->line[i], polygon_b->line[j], k);
-          }
-          else{
-            prod[k] = cross_product(polygon_b->line[j], polygon_a->line[i], k);
 
-          }
-        }
-        if(prod[0] * prod[1] <= 0){
-          check[count] = 1;
+bool check_collision(polygon_t polygon_a, polygon_t polygon_b)
+{
+  //create polygons
+  polygon_t *polygon = calloc(2, sizeof(polygon_t));
+  polygon[0] = polygon_a;
+  polygon[1] = polygon_b;
+
+  bool COLLISION = false;
+  //polygon collision algorithm
+  for (int i = 0; i < polygon[0].n_points; i++){
+    for (int j = 0; j < polygon[1].n_points;j++){
+      bool probability[2] = {false}, exception[2] = {false};
+      line_t *line = calloc(2, sizeof(line_t));
+      line[0] = polygon[0].line[i];
+      line[1] = polygon[1].line[j];
+      //for each line l in [l1, l2]
+      for (int k = 0; k < 2; k++){
+        int m;
+        if (k == 0){
+          m = 1;
         }
         else{
-          check[count] = 0;
+          m = 0;
         }
-        if (prod[0] * prod[1] == 0){
-          both_zero_check++;
+        //for each point p in the other line
+        double cross[2];
+        for (int l = 0; l < 2; l++){
+          cross[l] = cross_product(line[k],line[m].point[l]);
+        }
+        //If the two cross products have opposite sign, or one of them is zero
+        if (cross[0] * cross[1] <= 0){
+          if (cross[0] != 0 || cross[1] != 0){
+            probability[k] = true;
+            //store true value if only one of them is zero
+            if (cross[0] == 0 || cross[1] == 0){
+              exception[k] = true;
+            }
+            else{
+              exception[k] = false;
+            }
+          }
+          else{
+            probability[k] = false;
+          }
         }
       }
-      if (check[0] == 1 && check[1] == 1){
-        if (both_zero_check < 2){
-          collision = true;
+      //If both cross product checks above indicated opposite signs,
+      if (probability[0] && probability[1] == true){
+        //check for atleast one zero cross product in both cases
+        if (!(exception[0] && exception[1])){
+          COLLISION = true;
           break;
         }
       }
     }
   }
-  return collision;
-}
 
-bool overlap(polygon_t *polygon_a, polygon_t *polygon_b, bool collision)
-{
-  if (collision == false){
-    double temp_1[polygon_a->n_line];
-    double temp_2[polygon_b->n_line];
-    bool overlap_check_1 = false;
-    bool overlap_check_2 = false;
-    for (int polygon_n = 0; polygon_n < 2; polygon_n++){
-      if (polygon_n == 0){
-        for (int i = 0; i < polygon_a->n_line; i++){
-          temp_1[i] = cross_product(polygon_a->line[i], polygon_b->line[0], 0);
-        }
-        int positive = 0;
-        int negative = 0;
-        for (int i = 0; i < polygon_a->n_line; i++){
-          if (temp_1[i] >=0){
-            positive++;
-          }
-          else if(temp_1[i] <= 0){
-            negative++;
-          }
-        }
-        if (positive == polygon_a->n_line || negative == polygon_a->n_line){
-          overlap_check_1 = true;
-        }
+  //check for complete overlap
+  if (COLLISION == false){
+    bool collision[2];
+    int k;
+    //for each polygon
+    for (int i = 0; i < 2; i++){
+      if (i == 0){
+        k = 1;
       }
       else{
-        for (int i = 0; i < polygon_b->n_line; i++){
-          temp_2[i] = cross_product(polygon_b->line[i], polygon_a->line[0], 0);
+        k = 0;
+      }
+      double cross[polygon[i].n_points];
+      //for each line in polygon[i]
+      for (int j = 0; j < polygon[i].n_points; j++){
+        cross[j] = cross_product(polygon[i].line[j], polygon[k].line[0].point[1]);
+      }
+      for (int l = 0; l < polygon[i].n_points; l++){
+        if (cross[l] > 0){
+          collision[i] = false;
+          break;
         }
-        int positive = 0;
-        int negative = 0;
-        for (int i = 0; i < polygon_b->n_line; i++){
-          if (temp_2[i] >=0){
-            positive++;
-          }
-          else if(temp_2[i] <= 0){
-            negative++;
-          }
-        }
-        if (positive == polygon_b->n_line || negative == polygon_b->n_line){
-          overlap_check_2 = true;
+        else{
+          collision[i] = true;
         }
       }
     }
-    if (overlap_check_1 && overlap_check_2 == true){
-      collision = true;
+    if (collision[0] && collision[1]){
+      COLLISION = true;
     }
   }
-  return collision;
+  return COLLISION;
+}
+
+void print_result(bool COLLISION)
+{
+  //print
+  if (COLLISION == true){
+    printf("collision!\n");
+  }
+  else{
+    printf("no collision\n");
+  }
 }
 
 
-bool resolve_collision(vector_xy_t *lamp_centroid, vector_xy_t *polygon_centroid, polygon_t *lamp_polygon, polygon_t *robot_polygon, vector_xy_t *robot_vector){
+/*bool resolve_collision(vector_xy_t *lamp_centroid, vector_xy_t *polygon_centroid, polygon_t *lamp_polygon, polygon_t *robot_polygon, vector_xy_t *robot_vector){
   vector_xy_t *new_dir =  create_vector();
   new_dir->data_x[1] = lamp_centroid->data_x[0];
   new_dir->data_y[1] = lamp_centroid->data_y[0];
@@ -163,4 +176,4 @@ bool resolve_collision(vector_xy_t *lamp_centroid, vector_xy_t *polygon_centroid
   //free_data(new_dir);
   free_data(horizontal);
   return c1;
-}
+}*/

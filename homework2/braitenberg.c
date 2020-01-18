@@ -11,7 +11,7 @@
 #include "bmp.h"
 #include "graphics.h"
 #include "image_server.h"
-//#include "collision.h"
+#include "collision.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -106,8 +106,6 @@ int main(int argc, char **argv){
     double angle_r = -60;
     line_t eye_l = initialize_sensor(angle_l);
     line_t eye_r = initialize_sensor(angle_r);
-
-
     for (int time_step = 0; time_step <= atoi(argv[1]); time_step++){
       //image data
       bitmap_t bmp = { 0 }; // initialize to zeros
@@ -135,6 +133,12 @@ int main(int argc, char **argv){
       lamp[0] = *initialize_lamp(&bmp, 124.1, 224.4, color_lamp);
       lamp[1] = *initialize_lamp(&bmp, 349.1, 99.1, color_lamp);
       lamp[2] = *initialize_lamp(&bmp, 449.1, 349.1, color_lamp);
+      //create polygon_t for collision detection
+      polygon_t *lamp_polygon = calloc(3, sizeof(polygon_t));
+      for(int i = 0; i < 3; i++){
+        lamp_polygon[i] = make_polygon(lamp[i]);
+      }
+
       if (time_step == 0){
         //locate initial centroid of robot
         centroid_robot = create_point(bmp.width / 2, bmp.height / 2);
@@ -172,10 +176,24 @@ int main(int argc, char **argv){
         //update robot
         rotate_vector(robot, theta * 180 / PI);
         translate_vector(robot, centroid_robot.x, centroid_robot.y);
+        //update sensor directions
         angle_l += ( 180 / PI ) * (move_r - move_l) / BASE;
         angle_r += ( 180 / PI ) * (move_r - move_l) / BASE;
         eye_l = initialize_sensor(angle_l);
         eye_r = initialize_sensor(angle_r);
+        //create polygon_t robot for collision detection
+        polygon_t robot_polygon = make_polygon(*robot);
+        bool COLLISION = false;
+        for (int i = 0; i < 3; i++){
+          COLLISION = check_collision(lamp_polygon[i],robot_polygon);
+          if (COLLISION == true){
+            break;
+          }
+        }
+        print_result(COLLISION);
+
+
+        //display polygon
         vector_xy_i32_t *robot_outline = malloc(sizeof(vector_xy_i32_t));
         initialize_vector_i32(robot_outline);
         robot_outline = gx_draw_polygon_outline(&bmp, robot, color_robot);
@@ -234,7 +252,7 @@ int main(int argc, char **argv){
         //get data on server
         image_server_set_data(bmp_size, serialized_bmp);
         image_server_start("8000"); // you could change the port number, but animation.html wants 8000
-        //sleep(1);
+        sleep(1);
       }
       if (atoi(argv[2]) == 0){
         int seconds = 0;
